@@ -10,19 +10,62 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const user = users.find(user => user.username === username)
+  if(!user) {
+    return response.status(404).json({ error: "Username not found" })
+  }
+
+  request.user = user
+
+  return next()
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request
+  
+  if(!user.pro && user.todos.length >= 10) {
+    return response.status(403).json({ error: "Pro plan is not active" })
+  }
+
+  return next()
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const { id } = request.params
+
+  
+  const user = users.find(user => user.username === username)
+  if(!user) return response.status(404).json({ erro: "User not found" })
+  
+  const checkIdIsValid = validate(id)
+  if(!checkIdIsValid) return response.status(400).json({ erro: "Id is not valid" })
+
+  const todo = user.todos.find(todo => todo.id === id) 
+  if(todo == undefined || null) {
+    return response.status(404).json({ erro: "Todo not found" })
+  }else {
+    request.user = user
+    request.todo = todo
+  
+    return next()
+  }
+  
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params
+
+  const userExists = users.find(user => user.id === id)
+
+  if(userExists) {
+    request.user = userExists
+
+    return next()
+  }
+
+  return response.status(404).json({ erro: "User not exists" })
 }
 
 app.post('/users', (request, response) => {
@@ -92,6 +135,8 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
   const { title, deadline } = request.body;
   const { todo } = request;
 
+
+
   todo.title = title;
   todo.deadline = new Date(deadline);
 
@@ -100,6 +145,7 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
 
 app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
   const { todo } = request;
+
 
   todo.done = true;
 
